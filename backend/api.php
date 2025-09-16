@@ -4,6 +4,12 @@
  * Endpoints pour gérer membres, segments et messages
  */
 
+// Désactiver l'affichage des erreurs PHP pour éviter les sorties HTML
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// Headers pour JSON et CORS
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -15,13 +21,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+// Capturer les erreurs fatales
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && $error['type'] === E_ERROR) {
+        if (!headers_sent()) {
+            http_response_code(500);
+        }
+        echo json_encode([
+            'error' => true,
+            'message' => 'Erreur interne du serveur',
+            'code' => 500
+        ], JSON_UNESCAPED_UNICODE);
+    }
+});
+
+// Gestion globale des exceptions
+set_exception_handler(function($exception) {
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+    echo json_encode([
+        'error' => true,
+        'message' => $exception->getMessage(),
+        'code' => 500
+    ], JSON_UNESCAPED_UNICODE);
+    exit();
+});
+
 require_once 'database.php';
 
 class PolarisAPI {
     private $db;
     
     public function __construct() {
-        $this->db = new Database();
+        try {
+            $this->db = new Database();
+        } catch (Exception $e) {
+            $this->sendError('Erreur de connexion à la base de données: ' . $e->getMessage(), 500);
+        }
     }
     
     /**
@@ -76,6 +114,7 @@ class PolarisAPI {
             }
             
         } catch (Exception $e) {
+            error_log('API Error: ' . $e->getMessage());
             $this->sendError($e->getMessage(), 500);
         }
     }
@@ -92,7 +131,14 @@ class PolarisAPI {
      * Obtenir les données JSON de la requête
      */
     private function getJsonInput() {
-        return json_decode(file_get_contents('php://input'), true);
+        $input = file_get_contents('php://input');
+        $data = json_decode($input, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Données JSON invalides');
+        }
+        
+        return $data;
     }
     
     /**
@@ -204,7 +250,7 @@ class PolarisAPI {
         
         // Vérifier que le membre existe
         $existing = $this->db->query("SELECT * FROM members WHERE id = ?", [$data['id']])->fetch();
-        if (!existing) {
+        if (!$existing) {
             $this->sendError('Membre non trouvé', 404);
             return;
         }
@@ -264,7 +310,7 @@ class PolarisAPI {
         
         // Vérifier que le membre existe
         $existing = $this->db->query("SELECT * FROM members WHERE id = ?", [$data['id']])->fetch();
-        if (!existing) {
+        if (!$existing) {
             $this->sendError('Membre non trouvé', 404);
             return;
         }
@@ -349,7 +395,11 @@ class PolarisAPI {
      */
     private function getSegment($id) {
         // Informations du segment
-        $sql = "SELECT * FROM segments WHERE id = ?";
+        $sql = "SELECT s.*, COUNT(sm.member_id) as member_count 
+                FROM segments s 
+                LEFT JOIN segment_members sm ON s.id = sm.segment_id 
+                WHERE s.id = ? 
+                GROUP BY s.id";
         $stmt = $this->db->query($sql, [$id]);
         $segment = $stmt->fetch();
         
@@ -396,6 +446,81 @@ class PolarisAPI {
         ]);
         
         $this->getSegment($segmentId);
+    }
+    
+    /**
+     * Mettre à jour un segment
+     */
+    private function updateSegment() {
+        $data = $this->getJsonInput();
+        
+        if (empty($data['id'])) {
+            $this->sendError('ID du segment requis', 400);
+            return;
+        }
+        
+        // Vérifier que le segment existe
+        $existing = $this->db->query("SELECT * FROM segments WHERE id = ?", [$data['id']])->fetch();
+        if (!$existing) {
+            $this->sendError('Segment non trouvé', 404);
+            return;
+        }
+        
+        $updates = [];
+        $params = [];
+        
+        if (!empty($data['nom'])) {
+            // Vérifier que le nouveau nom n'existe pas déjà
+            $duplicate = $this->db->query("SELECT id FROM segments WHERE nom = ? AND id != ?", 
+                [trim($data['nom']), $data['id']])->fetch();
+            if ($duplicate) {
+                $this->sendError('Ce nom de segment existe déjà', 409);
+                return;
+            }
+            
+            $updates[] = "nom = ?";
+            $params[] = trim($data['nom']);
+        }
+        
+        if (isset($data['description'])) {
+            $updates[] = "description = ?";
+            $params[] = trim($data['description']);
+        }
+        
+        if (empty($updates)) {
+            $this->sendError('Aucune donnée à mettre à jour', 400);
+            return;
+        }
+        
+        $params[] = $data['id'];
+        $sql = "UPDATE segments SET " . implode(', ', $updates) . " WHERE id = ?";
+        $this->db->query($sql, $params);
+        
+        $this->getSegment($data['id']);
+    }
+    
+    /**
+     * Supprimer un segment
+     */
+    private function deleteSegment() {
+        $data = $this->getJsonInput();
+        
+        if (empty($data['id'])) {
+            $this->sendError('ID du segment requis', 400);
+            return;
+        }
+        
+        // Vérifier que le segment existe
+        $existing = $this->db->query("SELECT * FROM segments WHERE id = ?", [$data['id']])->fetch();
+        if (!$existing) {
+            $this->sendError('Segment non trouvé', 404);
+            return;
+        }
+        
+        // Supprimer (les relations seront supprimées automatiquement via CASCADE)
+        $this->db->query("DELETE FROM segments WHERE id = ?", [$data['id']]);
+        
+        $this->sendResponse(['message' => 'Segment supprimé avec succès']);
     }
     
     /**
@@ -475,6 +600,49 @@ class PolarisAPI {
     }
     
     /**
+     * Gestion des messages (placeholder)
+     */
+    private function handleMessages($method) {
+        switch ($method) {
+            case 'GET':
+                $this->getMessages();
+                break;
+            default:
+                $this->sendError('Méthode non autorisée', 405);
+        }
+    }
+    
+    /**
+     * Obtenir les messages (placeholder)
+     */
+    private function getMessages() {
+        $sql = "SELECT m.*, mem.prenom, mem.nom, mem.telephone 
+                FROM messages m 
+                JOIN members mem ON m.member_id = mem.id 
+                ORDER BY m.created_at DESC 
+                LIMIT 50";
+        
+        $stmt = $this->db->query($sql);
+        $messages = $stmt->fetchAll();
+        
+        $this->sendResponse($messages);
+    }
+    
+    /**
+     * Envoyer un message push (placeholder)
+     */
+    private function sendPushMessage() {
+        $data = $this->getJsonInput();
+        
+        // Pour l'instant, juste simuler
+        $this->sendResponse([
+            'success' => true,
+            'message' => 'Message push simulé',
+            'recipients_count' => count($data['recipients'] ?? [])
+        ]);
+    }
+    
+    /**
      * Statistiques générales
      */
     private function getStats() {
@@ -493,6 +661,8 @@ class PolarisAPI {
             'endpoints' => [
                 'GET /api.php?endpoint=members' => 'Lister les membres',
                 'POST /api.php?endpoint=members' => 'Créer un membre',
+                'PUT /api.php?endpoint=members' => 'Modifier un membre',
+                'DELETE /api.php?endpoint=members' => 'Supprimer un membre',
                 'GET /api.php?endpoint=segments' => 'Lister les segments',
                 'POST /api.php?endpoint=segments' => 'Créer un segment',
                 'GET /api.php?endpoint=stats' => 'Statistiques',
@@ -504,7 +674,11 @@ class PolarisAPI {
      * Envoyer une réponse JSON
      */
     private function sendResponse($data, $code = 200) {
-        http_response_code($code);
+        // S'assurer qu'on n'a pas déjà envoyé des headers
+        if (!headers_sent()) {
+            http_response_code($code);
+        }
+        
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         exit();
     }
@@ -521,7 +695,22 @@ class PolarisAPI {
     }
 }
 
-// Point d'entrée
-$api = new PolarisAPI();
-$api->handleRequest();
+// Point d'entrée principal
+try {
+    $api = new PolarisAPI();
+    $api->handleRequest();
+} catch (Exception $e) {
+    // Dernière chance de capturer les erreurs
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    
+    echo json_encode([
+        'error' => true,
+        'message' => 'Erreur interne du serveur',
+        'details' => $e->getMessage(),
+        'code' => 500
+    ], JSON_UNESCAPED_UNICODE);
+}
 ?>

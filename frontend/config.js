@@ -184,7 +184,12 @@ const ConfigUtils = {
      * Obtenir l'URL complète d'un endpoint
      */
     getApiUrl: (endpoint) => {
-        return API_CONFIG.baseUrl + API_CONFIG.endpoints[endpoint];
+        const endpointPath = API_CONFIG.endpoints[endpoint];
+        if (!endpointPath) {
+            console.error(`Endpoint '${endpoint}' non trouvé dans la configuration`);
+            return API_CONFIG.baseUrl + '/api.php?endpoint=' + endpoint;
+        }
+        return API_CONFIG.baseUrl + endpointPath;
     },
     
     /**

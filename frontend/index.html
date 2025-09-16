@@ -495,6 +495,160 @@
             display: inline-block;
         }
 
+        /* Styles spécifiques pour les conversations */
+        .conversation-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s ease;
+            position: relative;
+        }
+
+        .conversation-item:hover {
+            background: var(--light);
+        }
+
+        .conversation-item.active {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid var(--primary);
+        }
+
+        .conversation-item.unread {
+            background: rgba(16, 185, 129, 0.05);
+            border-left: 3px solid var(--success);
+        }
+
+        .conversation-item.urgent {
+            background: rgba(239, 68, 68, 0.05);
+            border-left: 3px solid var(--error);
+        }
+
+        .conversation-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .conversation-name {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .conversation-time {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .conversation-preview {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .conversation-status {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .status-unread {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-urgent {
+            background: var(--error);
+            color: white;
+        }
+
+        .status-ai-response {
+            background: var(--info);
+            color: white;
+        }
+
+        /* Messages dans la conversation */
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.incoming {
+            align-items: flex-start;
+        }
+
+        .message.outgoing {
+            align-items: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.incoming .message-bubble {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .message.outgoing .message-bubble {
+            background: var(--primary);
+            color: white;
+        }
+
+        .message-meta {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .message-status {
+            font-size: 0.7rem;
+        }
+
+        /* Suggestions de réponses */
+        .suggestion-item {
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: var(--primary);
+        }
+
+        .suggestion-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -840,14 +994,106 @@
                 <!-- Conversations Section -->
                 <section id="conversations-section" class="section">
                     <div class="content-header">
-                        <h1 class="content-title">Conversations</h1>
-                    </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">Fonctionnalité à venir</h2>
+                        <h1 class="content-title">Conversations WhatsApp</h1>
+                        <div class="actions">
+                            <button class="btn btn-secondary" onclick="refreshConversations()">
+                                <i class="fas fa-sync-alt"></i>
+                                Actualiser
+                            </button>
+                            <button class="btn btn-primary" onclick="openManualReplyModal()">
+                                <i class="fas fa-paper-plane"></i>
+                                Réponse manuelle
+                            </button>
                         </div>
-                        <p>L'interface de gestion des conversations avec Mistral AI sera disponible prochainement.</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; height: calc(100vh - 200px);">
+                        <!-- Liste des conversations -->
+                        <div class="card" style="display: flex; flex-direction: column;">
+                            <div class="card-header">
+                                <h2 class="card-title">Conversations récentes</h2>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-primary btn-small" onclick="filterConversations('all')">
+                                        Toutes
+                                    </button>
+                                    <button class="btn btn-secondary btn-small" onclick="filterConversations('unread')">
+                                        Non lues
+                                    </button>
+                                    <button class="btn btn-secondary btn-small" onclick="filterConversations('urgent')">
+                                        Urgentes
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div style="flex: 1; overflow-y: auto;" id="conversationsList">
+                                <!-- Conversations seront chargées ici -->
+                                <div style="text-align: center; padding: 2rem; color: var(--text-light);">
+                                    <i class="fas fa-comments" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                                    <p>Chargement des conversations...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Zone de conversation active -->
+                        <div class="card" style="display: flex; flex-direction: column;">
+                            <div class="card-header" id="conversationHeader">
+                                <div id="conversationInfo">
+                                    <h2 class="card-title">Sélectionnez une conversation</h2>
+                                    <p style="color: var(--text-light); margin: 0;">Choisissez un membre pour voir l'historique</p>
+                                </div>
+                                <div id="conversationActions" style="display: none;">
+                                    <button class="btn btn-secondary btn-small" onclick="analyzeConversationSentiment()">
+                                        <i class="fas fa-heart"></i>
+                                        Analyser sentiment
+                                    </button>
+                                    <button class="btn btn-primary btn-small" onclick="generateAutoReply()">
+                                        <i class="fas fa-robot"></i>
+                                        Réponse IA
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Messages de la conversation -->
+                            <div style="flex: 1; overflow-y: auto; padding: 1rem; background: #f8fafc;" id="messagesContainer">
+                                <div style="text-align: center; color: var(--text-light); padding: 2rem;">
+                                    <i class="fas fa-comment-dots" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                    <p>Sélectionnez une conversation pour voir les messages</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Zone de réponse -->
+                            <div style="border-top: 1px solid var(--border); padding: 1rem;" id="replyArea" class="hidden">
+                                <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                                    <div style="flex: 1;">
+                                        <textarea 
+                                            id="replyMessage" 
+                                            class="form-control" 
+                                            rows="2" 
+                                            placeholder="Tapez votre réponse..."
+                                            style="resize: none;"
+                                        ></textarea>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                        <button class="btn btn-primary btn-small" onclick="sendManualReply()">
+                                            <i class="fas fa-paper-plane"></i>
+                                            Envoyer
+                                        </button>
+                                        <button class="btn btn-secondary btn-small" onclick="generateSuggestions()">
+                                            <i class="fas fa-lightbulb"></i>
+                                            Suggestions
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Suggestions de réponses -->
+                                <div id="replySuggestions" style="margin-top: 1rem; display: none;">
+                                    <p style="font-weight: 500; margin-bottom: 0.5rem;">💡 Suggestions Mistral AI :</p>
+                                    <div id="suggestionsContainer">
+                                        <!-- Suggestions seront ajoutées ici -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -911,6 +1157,47 @@
                     Créer
                 </button>
                 <button class="btn btn-secondary" onclick="closeModal('addSegmentModal')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de réponse manuelle -->
+    <div id="manualReplyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Envoyer un message</h2>
+                <button class="modal-close" onclick="closeModal('manualReplyModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Destinataire</label>
+                <select class="form-control" id="manualReplyRecipient">
+                    <option value="">Choisir un membre...</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Message</label>
+                <textarea class="form-control" id="manualReplyText" rows="4" placeholder="Votre message..."></textarea>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <button class="btn btn-secondary btn-small" onclick="generateMessageWithAI()">
+                    <i class="fas fa-robot"></i>
+                    Générer avec IA
+                </button>
+                <button class="btn btn-secondary btn-small" onclick="improveMessageWithAI()">
+                    <i class="fas fa-magic"></i>
+                    Améliorer avec IA
+                </button>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="sendManualMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                    Envoyer
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('manualReplyModal')">Annuler</button>
             </div>
         </div>
     </div>
