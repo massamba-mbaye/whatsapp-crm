@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polaris CRM - Gestion Association</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --light: #f8fafc;
+            --border: #e5e7eb;
+            --text: #374151;
+            --text-light: #6b7280;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid var(--border);
+            padding: 2rem 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .sidebar .logo {
+            padding: 0 2rem 2rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .sidebar .logo h1 {
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .sidebar .logo p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 2rem;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .nav-link i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .breadcrumb {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.error { border-left-color: var(--error); }
+
+        .stat-card.success h3 { color: var(--success); }
+        .stat-card.warning h3 { color: var(--warning); }
+        .stat-card.error h3 { color: var(--error); }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .content-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box input {
+            padding-left: 2.5rem;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        /* Member Cards */
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .member-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+        }
+
+        .member-card.selected {
+            border: 2px solid var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .member-card .checkbox {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+
+        .member-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .member-phone {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .member-date {
+            color: var(--text-light);
+            font-size: 0.8rem;
+        }
+
+        .member-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
+        }
+
+        .notification.success { background: var(--success); }
+        .notification.error { background: var(--error); }
+        .notification.warning { background: var(--warning); }
+        .notification.info { background: var(--info); }
+
+        /* Segments */
+        .segments-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .segment-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .segment-item:hover {
+            background: var(--light);
+        }
+
+        .segment-item.active {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid var(--primary);
+        }
+
+        .segment-count {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Message Panel */
+        .message-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 2rem;
+        }
+
+        .selected-count {
+            background: var(--success);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                order: 2;
+            }
+
+            .main-content {
+                order: 1;
+            }
+
+            .nav-menu {
+                display: flex;
+                overflow-x: auto;
+                padding: 0 1rem;
+            }
+
+            .nav-item {
+                margin-bottom: 0;
+                margin-right: 0.5rem;
+            }
+
+            .nav-link {
+                white-space: nowrap;
+                padding: 0.75rem 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 1rem;
+            }
+
+            .members-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                width: auto;
+            }
+        }
+
+        /* Section visibility */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-star"></i> Polaris CRM</h1>
+                <p>Gestion Association</p>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active" data-section="dashboard">
+                            <i class="fas fa-chart-line"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-section="members">
+                            <i class="fas fa-users"></i>
+                            Membres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-section="segments">
+                            <i class="fas fa-tags"></i>
+                            Segments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-section="messages">
+                            <i class="fas fa-paper-plane"></i>
+                            Messages Push
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-section="conversations">
+                            <i class="fas fa-comments"></i>
+                            Conversations
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-top">
+                    <div class="breadcrumb">
+                        <i class="fas fa-home"></i>
+                        <span id="breadcrumb-text">Dashboard</span>
+                    </div>
+                    <div class="user-info">
+                        <span>Admin Polaris</span>
+                        <i class="fas fa-user-circle" style="font-size: 1.5rem; color: var(--primary);"></i>
+                    </div>
+                </div>
+                
+                <!-- Stats Row -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <h3 id="totalMembers">0</h3>
+                        <p><i class="fas fa-users"></i> Total Membres</p>
+                    </div>
+                    <div class="stat-card success">
+                        <h3 id="totalSegments">0</h3>
+                        <p><i class="fas fa-tags"></i> Segments</p>
+                    </div>
+                    <div class="stat-card warning">
+                        <h3 id="pendingMessages">0</h3>
+                        <p><i class="fas fa-clock"></i> Messages en attente</p>
+                    </div>
+                    <div class="stat-card error">
+                        <h3 id="failedMessages">0</h3>
+                        <p><i class="fas fa-exclamation-triangle"></i> Échecs</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content">
+                <!-- Dashboard Section -->
+                <section id="dashboard-section" class="section active">
+                    <div class="content-header">
+                        <h1 class="content-title">Tableau de bord</h1>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Bienvenue sur Polaris CRM</h2>
+                        </div>
+                        <p>Gérez facilement les membres de votre association et communiquez avec eux via WhatsApp.</p>
+                        
+                        <div style="margin-top: 2rem;">
+                            <h3>Fonctionnalités disponibles :</h3>
+                            <ul style="margin: 1rem 0; padding-left: 2rem;">
+                                <li>Gestion des membres (ajout, modification, suppression)</li>
+                                <li>Organisation en segments personnalisés</li>
+                                <li>Messages push via WhatsApp Business API</li>
+                                <li>Conversations avec assistance Mistral AI</li>
+                                <li>Suivi des statuts des messages</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Members Section -->
+                <section id="members-section" class="section">
+                    <div class="content-header">
+                        <h1 class="content-title">Gestion des Membres</h1>
+                        <div class="actions">
+                            <button class="btn btn-primary" onclick="openAddMemberModal()">
+                                <i class="fas fa-plus"></i>
+                                Ajouter membre
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="form-control" id="memberSearch" placeholder="Rechercher un membre...">
+                    </div>
+
+                    <!-- Selection Actions -->
+                    <div class="card" id="selectionActions" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="selected-count" id="selectedCount">0 sélectionné(s)</div>
+                            <div class="actions">
+                                <button class="btn btn-secondary btn-small" onclick="selectAllMembers()">Tout sélectionner</button>
+                                <button class="btn btn-secondary btn-small" onclick="clearSelection()">Désélectionner</button>
+                                <button class="btn btn-primary btn-small" onclick="addToSegmentModal()">Ajouter au segment</button>
+                                <button class="btn btn-success btn-small" onclick="sendMessageToSelected()">Envoyer message</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Members Grid -->
+                    <div class="members-grid" id="membersGrid">
+                        <!-- Members will be loaded here -->
+                    </div>
+                </section>
+
+                <!-- Segments Section -->
+                <section id="segments-section" class="section">
+                    <div class="content-header">
+                        <h1 class="content-title">Gestion des Segments</h1>
+                        <button class="btn btn-primary" onclick="openAddSegmentModal()">
+                            <i class="fas fa-plus"></i>
+                            Créer segment
+                        </button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
+                        <!-- Segments List -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Segments</h2>
+                            </div>
+                            <div class="segments-list" id="segmentsList">
+                                <!-- Segments will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Segment Details -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Détails du segment</h2>
+                            </div>
+                            <div id="segmentDetails">
+                                <p style="text-align: center; color: var(--text-light); padding: 2rem;">
+                                    Sélectionnez un segment pour voir ses détails
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Messages Section -->
+                <section id="messages-section" class="section">
+                    <div class="content-header">
+                        <h1 class="content-title">Messages Push</h1>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem;">
+                        <!-- Message History -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Historique des messages</h2>
+                            </div>
+                            <div id="messageHistory">
+                                <!-- Message history will be loaded here -->
+                                <p style="text-align: center; color: var(--text-light); padding: 2rem;">
+                                    Aucun message envoyé pour le moment
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Message Composer -->
+                        <div class="message-panel">
+                            <h3><i class="fas fa-paper-plane"></i> Nouveau message</h3>
+                            
+                            <div class="selected-count" id="messageSelectedCount" style="display: none;">
+                                0 destinataire(s)
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Destinataires</label>
+                                <select class="form-control" id="messageRecipients">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="selected">Membres sélectionnés</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Type de message</label>
+                                <select class="form-control" id="messageType">
+                                    <option value="template">Template WhatsApp</option>
+                                    <option value="text">Message libre</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="templateSection">
+                                <label class="form-label">Template</label>
+                                <select class="form-control" id="templateSelect">
+                                    <option value="hello_world">Hello World</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="textSection" style="display: none;">
+                                <label class="form-label">Message</label>
+                                <textarea class="form-control" id="messageText" rows="4" placeholder="Votre message..."></textarea>
+                            </div>
+
+                            <button class="btn btn-success" style="width: 100%;" onclick="sendPushMessage()">
+                                <i class="fas fa-paper-plane"></i>
+                                Envoyer
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Conversations Section -->
+                <section id="conversations-section" class="section">
+                    <div class="content-header">
+                        <h1 class="content-title">Conversations</h1>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Fonctionnalité à venir</h2>
+                        </div>
+                        <p>L'interface de gestion des conversations avec Mistral AI sera disponible prochainement.</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div id="addMemberModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Ajouter un membre</h2>
+                <button class="modal-close" onclick="closeModal('addMemberModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Prénom *</label>
+                <input type="text" class="form-control" id="memberPrenom" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Nom *</label>
+                <input type="text" class="form-control" id="memberNom" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Téléphone *</label>
+                <input type="tel" class="form-control" id="memberTelephone" placeholder="221771234567" required>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveMember()">
+                    <i class="fas fa-save"></i>
+                    Enregistrer
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('addMemberModal')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Segment Modal -->
+    <div id="addSegmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Créer un segment</h2>
+                <button class="modal-close" onclick="closeModal('addSegmentModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Nom du segment *</label>
+                <input type="text" class="form-control" id="segmentNom" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="segmentDescription" rows="3" placeholder="Description optionnelle du segment..."></textarea>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveSegment()">
+                    <i class="fas fa-save"></i>
+                    Créer
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('addSegmentModal')">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
